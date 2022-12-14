@@ -78,6 +78,12 @@ class GenerateNotification {
    private static Class<?> notificationOpenedClass;
    private static boolean openerIsBroadcast;
 
+   public static final String BUNDLE_KEY_ANDROID_NOTIFICATION_ID = "androidNotificationId";
+   public static final String BUNDLE_KEY_ACTION_ID = "actionId";
+   // Bundle key the whole OneSignal payload will be placed into as JSON and attached to the
+   //   notification Intent.
+   public static final String BUNDLE_KEY_ONESIGNAL_DATA = "onesignalData";
+
    private static class OneSignalNotificationBuilder {
       NotificationCompat.Builder compatBuilder;
       boolean hasLargeIcon;
@@ -209,10 +215,6 @@ class GenerateNotification {
       return intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION);
    }
 
-   GenerateNotificationOpenIntent intentGenerator = GenerateNotificationOpenIntentFromPushPayload.INSTANCE.create(
-         currentContext,
-         fcmJson
-   );
    
    private static OneSignalNotificationBuilder getBaseOneSignalNotificationBuilder(NotificationGenerationJob notifJob) {
       JSONObject gcmBundle = notifJob.jsonPayload;
@@ -336,6 +338,11 @@ class GenerateNotification {
       int notificationId = notifJob.getAndroidId();
       JSONObject gcmBundle = notifJob.jsonPayload;
       String group = gcmBundle.optString("grp", null);
+
+      GenerateNotificationOpenIntent intentGenerator = GenerateNotificationOpenIntentFromPushPayload.INSTANCE.create(
+           currentContext,
+           gcmBundle
+      );
 
       ArrayList<StatusBarNotification> grouplessNotifs = new ArrayList<>();
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
