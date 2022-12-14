@@ -70,3 +70,4 @@ dependencies {
 }
 
 apply from: 'maven-push.gradle'
+apply plugin: 'org.jetbrains.kotlin.android'
