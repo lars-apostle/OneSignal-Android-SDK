@@ -51,7 +51,9 @@ class NotificationSummaryManager {
       Cursor cursor = writableDb.query(
           NotificationTable.TABLE_NAME,
           new String[] { NotificationTable.COLUMN_NAME_ANDROID_NOTIFICATION_ID, // return columns
-              NotificationTable.COLUMN_NAME_CREATED_TIME },
+              NotificationTable.COLUMN_NAME_CREATED_TIME,
+              NotificationTable.COLUMN_NAME_FULL_DATA,
+          },
           NotificationTable.COLUMN_NAME_GROUP_ID + " = ? AND " + // Where String
               NotificationTable.COLUMN_NAME_DISMISSED + " = 0 AND " +
               NotificationTable.COLUMN_NAME_OPENED + " = 0 AND " +
@@ -105,6 +107,7 @@ class NotificationSummaryManager {
       try {
          cursor.moveToFirst();
          Long datetime = cursor.getLong(cursor.getColumnIndex(NotificationTable.COLUMN_NAME_CREATED_TIME));
+         String jsonStr = cursor.getString(cursor.getColumnIndex(NotificationTable.COLUMN_NAME_FULL_DATA));
          cursor.close();
    
          Integer androidNotifId = getSummaryNotificationId(writableDb, group);
@@ -115,12 +118,14 @@ class NotificationSummaryManager {
          notifJob.restoring = true;
          notifJob.shownTimeStamp = datetime;
       
-         JSONObject payload = new JSONObject();
+         JSONObject payload = new JSONObject(jsonStr);
          payload.put("grp", group);
          notifJob.jsonPayload = payload;
       
          GenerateNotification.updateSummaryNotification(notifJob);
-      } catch (JSONException e) {}
+      } catch (JSONException e) {
+         e.printStackTrace();
+      }
       
       return cursor;
    }

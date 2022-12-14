@@ -2125,7 +2125,7 @@ public class OneSignal {
          urlOpened = openURLFromNotification(inContext, data);
 
       // Check if the notification click should lead to a DIRECT session
-      if (shouldInitDirectSessionFromNotificationOpen(inContext, fromAlert, urlOpened, defaultOpenActionDisabled)) {
+      if (shouldInitDirectSessionFromNotificationOpen(inContext, data)) {
          // We want to set the app entry state to NOTIFICATION_CLICK when coming from background
          appEntryState = AppEntryAction.NOTIFICATION_CLICK;
          sessionManager.onDirectSessionFromNotificationOpen(notificationId);
@@ -2152,12 +2152,27 @@ public class OneSignal {
     * 4. App is coming from the background
     * 5. App open/resume intent exists
     */
-   private static boolean shouldInitDirectSessionFromNotificationOpen(Context context, boolean fromAlert, boolean urlOpened, boolean defaultOpenActionDisabled) {
-      return !fromAlert
-              && !urlOpened
-              && !defaultOpenActionDisabled
-              && !foreground
-              && startOrResumeApp(context);
+   private static boolean shouldInitDirectSessionFromNotificationOpen(Activity context, final JSONArray data) {
+      if (isForeground()) {
+         return false;
+      }
+
+      try {
+         JSONObject interactedNotificationData = data.getJSONObject(0);
+         return new OSNotificationOpenBehaviorFromPushPayload(
+                 context,
+                 interactedNotificationData
+         ).getShouldOpenApp();
+      } catch (JSONException e) {
+         e.printStackTrace();
+      }
+      return true;
+   }
+
+   static void applicationOpenedByNotification(@Nullable final String notificationId) {
+      // We want to set the app entry state to NOTIFICATION_CLICK when coming from background
+      appEntryState = AppEntryAction.NOTIFICATION_CLICK;
+      //sessionManager.onDirectInfluenceFromNotificationOpen(appEntryState, notificationId);
    }
 
    private static void notificationOpenedRESTCall(Context inContext, JSONArray dataArray) {

@@ -208,6 +208,11 @@ class GenerateNotification {
          return intent;
       return intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION);
    }
+
+   GenerateNotificationOpenIntent intentGenerator = GenerateNotificationOpenIntentFromPushPayload.INSTANCE.create(
+         currentContext,
+         fcmJson
+   );
    
    private static OneSignalNotificationBuilder getBaseOneSignalNotificationBuilder(NotificationGenerationJob notifJob) {
       JSONObject gcmBundle = notifJob.jsonPayload;
@@ -347,7 +352,7 @@ class GenerateNotification {
       OneSignalNotificationBuilder oneSignalNotificationBuilder = getBaseOneSignalNotificationBuilder(notifJob);
       NotificationCompat.Builder notifBuilder = oneSignalNotificationBuilder.compatBuilder;
 
-      addNotificationActionButtons(gcmBundle, notifBuilder, notificationId, null);
+      addNotificationActionButtons(gcmBundle, intentGenerator, notifBuilder, notificationId, null);
       
       try {
          addBackgroundImage(gcmBundle, notifBuilder);
@@ -368,18 +373,18 @@ class GenerateNotification {
 
       Notification notification;
       if (group != null) {
-         createGenericPendingIntentsForGroup(notifBuilder, gcmBundle, group, notificationId);
+         createGenericPendingIntentsForGroup(notifBuilder, intentGenerator, gcmBundle, group, notificationId);
          notification = createSingleNotificationBeforeSummaryBuilder(notifJob, notifBuilder);
 
          // Create PendingIntents for notifications in a groupless or defined summary
          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N &&
                  group.equals(OneSignalNotificationManager.getGrouplessSummaryKey()))
-            createGrouplessSummaryNotification(notifJob, grouplessNotifs.size() + 1);
+            createGrouplessSummaryNotification(notifJob, intentGenerator, grouplessNotifs.size() + 1);
          else
             createSummaryNotification(notifJob, oneSignalNotificationBuilder);
       }
       else
-         notification = createGenericPendingIntentsForNotif(notifBuilder, gcmBundle, notificationId);
+         notification = createGenericPendingIntentsForNotif(notifBuilder, intentGenerator, gcmBundle, notificationId);
 
       // NotificationManagerCompat does not auto omit the individual notification on the device when using
       //   stacked notifications on Android 4.2 and older
@@ -393,18 +398,26 @@ class GenerateNotification {
       }
    }
 
-   private static Notification createGenericPendingIntentsForNotif(NotificationCompat.Builder notifBuilder, JSONObject gcmBundle, int notificationId) {
+   private static Notification createGenericPendingIntentsForNotif(NotificationCompat.Builder notifBuilder, GenerateNotificationOpenIntent intentGenerator, JSONObject gcmBundle, int notificationId) {
       Random random = new SecureRandom();
-      PendingIntent contentIntent = getNewActionPendingIntent(random.nextInt(), getNewBaseIntent(notificationId).putExtra("onesignal_data", gcmBundle.toString()));
+      //PendingIntent contentIntent = getNewActionPendingIntent(random.nextInt(), getNewBaseIntent(notificationId).putExtra("onesignal_data", gcmBundle.toString()));
+      PendingIntent contentIntent = intentGenerator.getNewActionPendingIntent(
+          random.nextInt(),
+          intentGenerator.getNewBaseIntent(notificationId).putExtra(BUNDLE_KEY_ONESIGNAL_DATA, gcmBundle.toString())
+      );
       notifBuilder.setContentIntent(contentIntent);
       PendingIntent deleteIntent = getNewActionPendingIntent(random.nextInt(), getNewBaseDeleteIntent(notificationId));
       notifBuilder.setDeleteIntent(deleteIntent);
       return notifBuilder.build();
    }
 
-   private static void createGenericPendingIntentsForGroup(NotificationCompat.Builder notifBuilder, JSONObject gcmBundle, String group, int notificationId) {
+   private static void createGenericPendingIntentsForGroup(NotificationCompat.Builder notifBuilder, GenerateNotificationOpenIntent intentGenerator, JSONObject gcmBundle, String group, int notificationId) {
       Random random = new SecureRandom();
-      PendingIntent contentIntent = getNewActionPendingIntent(random.nextInt(), getNewBaseIntent(notificationId).putExtra("onesignal_data", gcmBundle.toString()).putExtra("grp", group));
+      //PendingIntent contentIntent = getNewActionPendingIntent(random.nextInt(), getNewBaseIntent(notificationId).putExtra("onesignal_data", gcmBundle.toString()).putExtra("grp", group));
+      PendingIntent contentIntent = intentGenerator.getNewActionPendingIntent(
+          random.nextInt(),
+          intentGenerator.getNewBaseIntent(notificationId).putExtra(BUNDLE_KEY_ONESIGNAL_DATA, gcmBundle.toString()).putExtra("grp", group)
+      );
       notifBuilder.setContentIntent(contentIntent);
       PendingIntent deleteIntent = getNewActionPendingIntent(random.nextInt(), getNewBaseDeleteIntent(notificationId).putExtra("grp", group));
       notifBuilder.setDeleteIntent(deleteIntent);
@@ -507,6 +520,11 @@ class GenerateNotification {
       boolean updateSummary = notifJob.restoring;
       JSONObject gcmBundle = notifJob.jsonPayload;
 
+      GenerateNotificationOpenIntent intentGenerator = GenerateNotificationOpenIntentFromPushPayload.INSTANCE.create(
+           currentContext,
+           gcmBundle
+      );
+
       String group = gcmBundle.optString("grp", null);
 
       SecureRandom random = new SecureRandom();
@@ -596,7 +614,11 @@ class GenerateNotification {
          createSummaryIdDatabaseEntry(dbHelper, group, summaryNotificationId);
       }
       
-      PendingIntent summaryContentIntent = getNewActionPendingIntent(random.nextInt(), createBaseSummaryIntent(summaryNotificationId, gcmBundle, group));
+      //PendingIntent summaryContentIntent = getNewActionPendingIntent(random.nextInt(), createBaseSummaryIntent(summaryNotificationId, gcmBundle, group));
+      PendingIntent summaryContentIntent = intentGenerator.getNewActionPendingIntent(
+          random.nextInt(),
+          createBaseSummaryIntent(summaryNotificationId, intentGenerator, gcmBundle, group)
+      );
       
       // 2 or more notifications with a group received, group them together as a single notification.
       if (summaryList != null &&
@@ -682,7 +704,7 @@ class GenerateNotification {
          //    extender setup all the settings will carry over.
          // Note: However their buttons will not carry over as we need to be setup with this new summaryNotificationId.
          summaryBuilder.mActions.clear();
-         addNotificationActionButtons(gcmBundle, summaryBuilder, summaryNotificationId, group);
+         addNotificationActionButtons(gcmBundle, intentGenerator, summaryBuilder, summaryNotificationId, group);
 
          summaryBuilder.setContentIntent(summaryContentIntent)
                        .setDeleteIntent(summaryDeleteIntent)
@@ -706,7 +728,7 @@ class GenerateNotification {
    }
 
    @RequiresApi(api = Build.VERSION_CODES.M)
-   private static void createGrouplessSummaryNotification(NotificationGenerationJob notifJob, int grouplessNotifCount) {
+   private static void createGrouplessSummaryNotification(NotificationGenerationJob notifJob, GenerateNotificationOpenIntent intentGenerator, int grouplessNotifCount) {
       JSONObject gcmBundle = notifJob.jsonPayload;
 
       Notification summaryNotification;
@@ -716,7 +738,11 @@ class GenerateNotification {
       String summaryMessage = grouplessNotifCount + " new messages";
       int summaryNotificationId = OneSignalNotificationManager.getGrouplessSummaryId();
 
-      PendingIntent summaryContentIntent = getNewActionPendingIntent(random.nextInt(), createBaseSummaryIntent(summaryNotificationId, gcmBundle, group));
+      //PendingIntent summaryContentIntent = getNewActionPendingIntent(random.nextInt(), createBaseSummaryIntent(summaryNotificationId, gcmBundle, group));
+      PendingIntent summaryContentIntent = intentGenerator.getNewActionPendingIntent(
+          random.nextInt(),
+          createBaseSummaryIntent(summaryNotificationId,intentGenerator, gcmBundle, group)
+      );
       PendingIntent summaryDeleteIntent = getNewActionPendingIntent(random.nextInt(), getNewBaseDeleteIntent(0).putExtra("summary", group));
 
       NotificationCompat.Builder summaryBuilder = getBaseOneSignalNotificationBuilder(notifJob).compatBuilder;
@@ -756,8 +782,9 @@ class GenerateNotification {
       NotificationManagerCompat.from(currentContext).notify(summaryNotificationId, summaryNotification);
    }
    
-   private static Intent createBaseSummaryIntent(int summaryNotificationId, JSONObject gcmBundle, String group) {
-     return getNewBaseIntent(summaryNotificationId).putExtra("onesignal_data", gcmBundle.toString()).putExtra("summary", group);
+   private static Intent createBaseSummaryIntent(int summaryNotificationId, GenerateNotificationOpenIntent intentGenerator, JSONObject gcmBundle, String group) {
+     //return getNewBaseIntent(summaryNotificationId).putExtra("onesignal_data", gcmBundle.toString()).putExtra("summary", group);
+     return intentGenerator.getNewBaseIntent(summaryNotificationId).putExtra(BUNDLE_KEY_ONESIGNAL_DATA, gcmBundle.toString()).putExtra("summary", group);
    }
    
    private static void createSummaryIdDatabaseEntry(OneSignalDbHelper dbHelper, String group, int id) {
@@ -1026,7 +1053,7 @@ class GenerateNotification {
       return null;
    }
 
-   private static void addNotificationActionButtons(JSONObject gcmBundle, NotificationCompat.Builder mBuilder, int notificationId, String groupSummary) {
+   private static void addNotificationActionButtons(JSONObject gcmBundle, NotificationCompat.Builder mBuilder, GenerateNotificationOpenIntent intentGenerator, int notificationId, String groupSummary) {
       try {
          JSONObject customJson = new JSONObject(gcmBundle.optString("custom"));
          
@@ -1043,7 +1070,8 @@ class GenerateNotification {
             JSONObject button = buttons.optJSONObject(i);
             JSONObject bundle = new JSONObject(gcmBundle.toString());
 
-            Intent buttonIntent = getNewBaseIntent(notificationId);
+            //Intent buttonIntent = getNewBaseIntent(notificationId);
+            Intent buttonIntent = intentGenerator.getNewBaseIntent(notificationId);
             buttonIntent.setAction("" + i); // Required to keep each action button from replacing extras of each other
             buttonIntent.putExtra("action_button", true);
             bundle.put("actionSelected", button.optString("id"));
@@ -1053,7 +1081,8 @@ class GenerateNotification {
             else if (gcmBundle.has("grp"))
                buttonIntent.putExtra("grp", gcmBundle.optString("grp"));
 
-            PendingIntent buttonPIntent = getNewActionPendingIntent(notificationId, buttonIntent);
+            //PendingIntent buttonPIntent = getNewActionPendingIntent(notificationId, buttonIntent);
+            PendingIntent buttonPIntent = intentGenerator.getNewActionPendingIntent(notificationId, buttonIntent);
 
             int buttonIcon = 0;
             if (button.has("icon"))
