@@ -28,10 +28,10 @@ class Global {
 
     static def GROUP_ID = 'com.onesignal'
     static def POM_DESCRIPTION = 'OneSignal Android SDK'
-    static def POM_URL = 'https://github.com/one-signal/OneSignal-Android-SDK'
-    static def POM_SCM_URL = 'https://github.com/one-signal/OneSignal-Android-SDK'
-    static def POM_SCM_CONNECTION = 'scm:git:https://github.com/one-signal/OneSignal-Android-SDK'
-    static def POM_SCM_DEV_CONNECTION = 'scm:git:https://github.com/one-signal/OneSignal-Android-SDK'
+    static def POM_URL = 'https://github.com/lars-apostle/OneSignal-Android-SDK'
+    static def POM_SCM_URL = 'https://github.com/lars-apostle/OneSignal-Android-SDK'
+    static def POM_SCM_CONNECTION = 'scm:git:https://github.com/lars-apostle/OneSignal-Android-SDK'
+    static def POM_SCM_DEV_CONNECTION = 'scm:git:https://github.com/lars-apostle/OneSignal-Android-SDK'
     static def POM_LICENCE_NAME = 'MIT License'
     static def POM_LICENCE_URL = 'https://raw.githubusercontent.com/one-signal/OneSignal-Android-SDK/master/LICENSE'
     static def POM_LICENCE_DIST = 'repo'
@@ -53,74 +53,74 @@ def getRepositoryPassword() {
     return hasProperty('NEXUS_PASSWORD') ? NEXUS_PASSWORD : ""
 }
 
-afterEvaluate { project ->
-    uploadArchives {
-        repositories {
-            mavenDeployer {
-                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-
-                pom.groupId = Global.GROUP_ID
-                pom.artifactId = Global.POM_ARTIFACT_ID
-                pom.version = Global.VERSION_NAME
-
-                repository(url: Global.RELEASE_REPOSITORY_URL) {
-                    authentication(userName: getRepositoryUsername(), password: getRepositoryPassword())
-                }
-                snapshotRepository(url: Global.SNAPSHOT_REPOSITORY_URL) {
-                    authentication(userName: getRepositoryUsername(), password: getRepositoryPassword())
-                }
-
-                pom.project {
-                    name Global.POM_NAME
-                    packaging Global.POM_PACKAGING
-                    description Global.POM_DESCRIPTION
-                    url Global.POM_URL
-
-                    scm {
-                        url Global.POM_SCM_URL
-                        connection Global.POM_SCM_CONNECTION
-                        developerConnection Global.POM_SCM_DEV_CONNECTION
-                    }
-
-                    licenses {
-                        license {
-                            name Global.POM_LICENCE_NAME
-                            url Global.POM_LICENCE_URL
-                            distribution Global.POM_LICENCE_DIST
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id Global.POM_DEVELOPER_ID
-                            name Global.POM_DEVELOPER_NAME
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    signing {
-        required { isReleaseBuild() && gradle.taskGraph.hasTask("uploadArchives") }
-        sign configurations.archives
-    }
-
-    //task androidJavadocs(type: Javadoc) {
-    //source = android.sourceSets.main.allJava
-    //}
-
-    //task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
-    //classifier = 'javadoc'
-    //from androidJavadocs.destinationDir
-    //}
-
-    task androidSourcesJar(type: Jar) {
-        classifier = 'sources'
-        from android.sourceSets.main.java.sourceFiles
-    }
-
-    artifacts {
-        archives androidSourcesJar
-    }
-}
+//afterEvaluate { project ->
+//    uploadArchives {
+//        repositories {
+//            mavenDeployer {
+//                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+//
+//                pom.groupId = Global.GROUP_ID
+//                pom.artifactId = Global.POM_ARTIFACT_ID
+//                pom.version = Global.VERSION_NAME
+//
+//                repository(url: Global.RELEASE_REPOSITORY_URL) {
+//                    authentication(userName: getRepositoryUsername(), password: getRepositoryPassword())
+//                }
+//                snapshotRepository(url: Global.SNAPSHOT_REPOSITORY_URL) {
+//                    authentication(userName: getRepositoryUsername(), password: getRepositoryPassword())
+//                }
+//
+//                pom.project {
+//                    name Global.POM_NAME
+//                    packaging Global.POM_PACKAGING
+//                    description Global.POM_DESCRIPTION
+//                    url Global.POM_URL
+//
+//                    scm {
+//                        url Global.POM_SCM_URL
+//                        connection Global.POM_SCM_CONNECTION
+//                        developerConnection Global.POM_SCM_DEV_CONNECTION
+//                    }
+//
+//                    licenses {
+//                        license {
+//                            name Global.POM_LICENCE_NAME
+//                            url Global.POM_LICENCE_URL
+//                            distribution Global.POM_LICENCE_DIST
+//                        }
+//                    }
+//
+//                    developers {
+//                        developer {
+//                            id Global.POM_DEVELOPER_ID
+//                            name Global.POM_DEVELOPER_NAME
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
+//    signing {
+//        required { isReleaseBuild() && gradle.taskGraph.hasTask("uploadArchives") }
+//        sign configurations.archives
+//    }
+//
+//    //task androidJavadocs(type: Javadoc) {
+//    //source = android.sourceSets.main.allJava
+//    //}
+//
+//    //task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
+//    //classifier = 'javadoc'
+//    //from androidJavadocs.destinationDir
+//    //}
+//
+//    task androidSourcesJar(type: Jar) {
+//        classifier = 'sources'
+//        from android.sourceSets.main.java.sourceFiles
+//    }
+//
+//    artifacts {
+//        archives androidSourcesJar
+//    }
+//}
